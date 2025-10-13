@@ -45,7 +45,8 @@ router.get('/callback', async (req, res) => {
     sessions.set(sessionId, tokens);
 
     // Redirect to frontend with session
-    res.redirect(`http://localhost:3000?session=${sessionId}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}?session=${sessionId}`);
   } catch (error) {
     console.error('Error getting tokens:', error);
     res.status(500).send('Authentication failed');
