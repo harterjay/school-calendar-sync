@@ -3,6 +3,10 @@ import './App.css';
 import Dashboard from './components/Dashboard';
 import axios from 'axios';
 
+// Configure API base URL
+const API_URL = process.env.REACT_APP_API_URL || '';
+axios.defaults.baseURL = API_URL;
+
 // Set up axios interceptor to include session ID in all requests
 axios.interceptors.request.use((config) => {
   const sessionId = localStorage.getItem('sessionId');
@@ -46,7 +50,8 @@ function App() {
 
   const handleGoogleLogin = () => {
     // Redirect to Google OAuth
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    window.location.href = `${apiUrl}/api/auth/google`;
   };
 
   const handleLogout = async () => {
