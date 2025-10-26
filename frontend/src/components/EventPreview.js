@@ -29,12 +29,18 @@ function EventPreview({ events, onToggleEvent, onSync, onCancel, loading }) {
   };
 
   const selectedCount = events.filter(e => e.selected !== false).length;
+  const duplicateCount = events.filter(e => e.isDuplicate).length;
 
   return (
     <div className="event-preview">
       <div className="preview-header">
         <h2>Preview Events</h2>
-        <p>Found {events.length} events - {selectedCount} selected</p>
+        <p>
+          Found {events.length} events - {selectedCount} selected
+          {duplicateCount > 0 && (
+            <span className="duplicate-info"> ({duplicateCount} potential duplicate{duplicateCount !== 1 ? 's' : ''} unchecked)</span>
+          )}
+        </p>
       </div>
 
       <div className="event-list">
@@ -53,6 +59,11 @@ function EventPreview({ events, onToggleEvent, onSync, onCancel, loading }) {
               <div className="event-title">
                 <strong>{event.title}</strong>
                 <span className="event-type-badge">{getEventTypeLabel(event.eventType)}</span>
+                {event.isDuplicate && (
+                  <span className="duplicate-badge" title="Possible duplicate detected in calendar">
+                    ⚠️ Duplicate
+                  </span>
+                )}
               </div>
               <div className="event-meta">
                 <span className="event-child">{event.childName}</span>

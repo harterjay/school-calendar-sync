@@ -62,7 +62,25 @@ function Dashboard({ onLogout }) {
         allEvents.push(...response2.data.events);
       }
 
-      setParsedEvents(allEvents);
+      // Check for duplicates if calendar is selected
+      if (selectedCalendar && allEvents.length > 0) {
+        const duplicateResponse = await axios.post('/api/sync/check-duplicates', {
+          calendarId: selectedCalendar,
+          events: allEvents
+        });
+
+        // Update events with duplicate status and uncheck duplicates by default
+        const eventsWithStatus = duplicateResponse.data.events.map(event => ({
+          ...event,
+          selected: !event.isDuplicate // Uncheck duplicates, check non-duplicates
+        }));
+
+        setParsedEvents(eventsWithStatus);
+      } else {
+        // If no calendar selected, just set events as-is (all checked by default)
+        setParsedEvents(allEvents.map(e => ({ ...e, selected: true })));
+      }
+
       setShowPreview(true);
     } catch (error) {
       console.error('Error parsing events:', error);
