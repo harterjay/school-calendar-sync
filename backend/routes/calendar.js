@@ -7,7 +7,7 @@ const authRoutes = require('./auth');
 router.get('/list', async (req, res) => {
   try {
     const sessionId = req.headers['x-session-id'];
-    const authClient = authRoutes.getAuthClient(sessionId);
+    const authClient = await authRoutes.getAuthClient(sessionId);
 
     if (!authClient) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -34,7 +34,7 @@ router.get('/list', async (req, res) => {
 router.get('/events/:calendarId', async (req, res) => {
   try {
     const sessionId = req.headers['x-session-id'];
-    const authClient = authRoutes.getAuthClient(sessionId);
+    const authClient = await authRoutes.getAuthClient(sessionId);
 
     if (!authClient) {
       return res.status(401).json({ error: 'Not authenticated' });

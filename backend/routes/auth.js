@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { google } = require('googleapis');
+const { kv } = require('@vercel/kv');
 
 // Initialize OAuth2 client
 const oauth2Client = new google.auth.OAuth2(
@@ -9,8 +10,9 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_REDIRECT_URI
 );
 
-// Store for session tokens (in production, use Redis or database)
-const sessions = new Map();
+// Session configuration
+const SESSION_PREFIX = 'session:';
+const SESSION_TTL = 60 * 60 * 24 * 7; // 7 days in seconds
 
 // Generate auth URL
 router.get('/google', (req, res) => {
@@ -40,9 +42,13 @@ router.get('/callback', async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Generate session ID (in production, use secure session management)
-    const sessionId = Date.now().toString();
-    sessions.set(sessionId, tokens);
+    // Generate secure session ID
+    const sessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Store session in Vercel KV with TTL
+    await kv.set(`${SESSION_PREFIX}${sessionId}`, JSON.stringify(tokens), {
+      ex: SESSION_TTL
+    });
 
     // Redirect to frontend with session
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -54,41 +60,62 @@ router.get('/callback', async (req, res) => {
 });
 
 // Check auth status
-router.get('/status', (req, res) => {
+router.get('/status', async (req, res) => {
   const sessionId = req.headers['x-session-id'];
 
-  if (!sessionId || !sessions.has(sessionId)) {
+  if (!sessionId) {
     return res.json({ authenticated: false });
   }
 
-  res.json({ authenticated: true });
+  try {
+    const tokens = await kv.get(`${SESSION_PREFIX}${sessionId}`);
+    res.json({ authenticated: !!tokens });
+  } catch (error) {
+    console.error('Error checking session:', error);
+    res.json({ authenticated: false });
+  }
 });
 
 // Logout
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
   const sessionId = req.headers['x-session-id'];
 
-  if (sessionId && sessions.has(sessionId)) {
-    sessions.delete(sessionId);
+  if (sessionId) {
+    try {
+      await kv.del(`${SESSION_PREFIX}${sessionId}`);
+    } catch (error) {
+      console.error('Error deleting session:', error);
+    }
   }
 
   res.json({ success: true });
 });
 
 // Middleware to get authenticated client
-router.getAuthClient = (sessionId) => {
-  const tokens = sessions.get(sessionId);
-  if (!tokens) {
+router.getAuthClient = async (sessionId) => {
+  if (!sessionId) {
     return null;
   }
 
-  const client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
-  client.setCredentials(tokens);
-  return client;
+  try {
+    const tokensJson = await kv.get(`${SESSION_PREFIX}${sessionId}`);
+    if (!tokensJson) {
+      return null;
+    }
+
+    const tokens = typeof tokensJson === 'string' ? JSON.parse(tokensJson) : tokensJson;
+
+    const client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+    client.setCredentials(tokens);
+    return client;
+  } catch (error) {
+    console.error('Error getting auth client:', error);
+    return null;
+  }
 };
 
 module.exports = router;

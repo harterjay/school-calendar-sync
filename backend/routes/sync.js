@@ -31,7 +31,7 @@ router.post('/parse', async (req, res) => {
 router.post('/check-duplicates', async (req, res) => {
   try {
     const sessionId = req.headers['x-session-id'];
-    const authClient = authRoutes.getAuthClient(sessionId);
+    const authClient = await authRoutes.getAuthClient(sessionId);
 
     if (!authClient) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -81,7 +81,7 @@ router.post('/check-duplicates', async (req, res) => {
 router.post('/create', async (req, res) => {
   try {
     const sessionId = req.headers['x-session-id'];
-    const authClient = authRoutes.getAuthClient(sessionId);
+    const authClient = await authRoutes.getAuthClient(sessionId);
 
     if (!authClient) {
       return res.status(401).json({ error: 'Not authenticated' });
