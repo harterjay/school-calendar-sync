@@ -13,6 +13,8 @@ backend/node_modules/
 # Build outputs
 frontend/build/
 backend/dist/
+.next/
+out/
 
 # Logs
 npm-debug.log*
