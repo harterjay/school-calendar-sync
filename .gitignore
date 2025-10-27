@@ -11,8 +11,8 @@ backend/node_modules/
 .env.production.local
 
 # Build outputs
-frontend/build/
-backend/dist/
+frontend/
+backend/
 .next/
 out/
 
